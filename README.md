@@ -1,0 +1,3 @@
+# OmokServer
+ 
+Omok game server
