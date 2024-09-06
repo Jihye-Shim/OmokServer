@@ -4,6 +4,9 @@
     <Filter Include="Utils">
       <UniqueIdentifier>{2ef51145-dd04-4492-bb18-1d61dcdbfee7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{3b2566bd-1a63-4a7a-bfcb-a27e546c9fd0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -12,6 +15,18 @@
     <ClInclude Include="CorePch.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="SocketUtils.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketAddress.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Types.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Session.h">
+      <Filter>Network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -19,6 +34,15 @@
     </ClCompile>
     <ClCompile Include="CorePch.cpp">
       <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="SocketUtils.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="SocketAddress.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Session.cpp">
+      <Filter>Network</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
