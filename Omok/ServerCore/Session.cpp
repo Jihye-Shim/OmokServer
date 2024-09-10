@@ -1,101 +1,191 @@
 #include "pch.h"
 #include "Session.h"
-#include "SocketUtils.h"
-IocpEvent::IocpEvent(EventType eventType) : _eventType(eventType)
-{
-	OVERLAPPED::hEvent = 0;
-	OVERLAPPED::Internal = 0;
-	OVERLAPPED::InternalHigh = 0;
-	OVERLAPPED::Offset = 0;
-	OVERLAPPED::OffsetHigh = 0;
-}
 
 Session::Session()
 {
-	//_socket = SocketUtils::CreateSocket(); -> acceptEx 사용시
+	_socket = SocketUtils::CreateSocket();
 }
-
 Session::~Session()
 {
+	SocketUtils::CloseSocket(_socket);
 }
 
-void Session::SetSocketAddress(SocketAddress sAddress)
+void Session::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 {
-	_sockAddress = sAddress;
-}
-
-void Session::Dispatch(IocpEvent* iocpEvent, int32 numOfByte)
-{
-	//Event로 session 꺼내다 쓰기
 	switch (iocpEvent->_eventType) {
-	case EventType::Send:
-		iocpEvent->owner->ProcessSend();
+	case EventType::Connnect:
+		ProcessConnect();
+		break;
+	case EventType::Disconnect:
+		ProcessDisconnect();
 		break;
 	case EventType::Recv:
-		iocpEvent->owner->ProcessRecv();
+		ProcessRecv(numOfBytes);
+		break;
+	case EventType::Send:
+		ProcessSend(numOfBytes);
 		break;
 	default:
 		break;
 	}
 }
 
-void Session::RegisterRecv()
+bool Session::Connect(SocketAddress targetAddress)
 {
-	_recvEvent.owner = shared_from_this();
 
-	WSABUF wsa;
-	wsa.buf = reinterpret_cast<char*>(_recvBuffer);
-	wsa.len = recvSize;
+	return RegisterConnect(targetAddress);
+}
+
+void Session::Disconnect(const WCHAR* cause)
+{
+	//_connect 상태 변경
+	if (_connected.exchange(false) == false)
+		return;
+	
+	wcout << "Disconnect: " << cause << endl;
+	RegisterDisconnect();
+}
+
+void Session::Send(BYTE* sendBuffer)
+{
+	if (false == IsConnected())
+		return;
+	::memcpy(_sendBuffer, sendBuffer, sizeof(sendBuffer));
+	// 나중에 sendBuffer 패킷 개선
+	RegisterSend();
+}
+
+bool Session::RegisterConnect(SocketAddress targetAddress)
+{
+	if (IsConnected())
+		return false;
+	// _socket 초기화
+	if (false == SocketUtils::SetReuseAddr(_socket, true))
+		return false;
+	if (false == SocketUtils::SetTcpNoDelay(_socket, true))
+		return false;
+	if (false == SocketUtils::BindAnyAddress(_socket, 0))
+		return false;
+
+	//_connectEvent 초기화
+	_connectEvent.Init();
+	_connectEvent.owner = shared_from_this();
+
+	SOCKADDR_IN addr = targetAddress.GetSockAddr(); // targetAddress
 	DWORD numOfBytes;
-	DWORD flag = 0;
-	if (SOCKET_ERROR == ::WSARecv(_socket, &wsa, 1, OUT & numOfBytes, OUT & flag, &_recvEvent, nullptr))
-	{
-		int32 errCode = ::WSAGetLastError();
+	if(SOCKET_ERROR == SocketUtils::ConnectEx(_socket, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr),
+		nullptr, 0, OUT & numOfBytes, &_connectEvent)){
+		int32 errCode = WSAGetLastError();
 		if (errCode != WSA_IO_PENDING) {
-			cout << "Recv Handle Error : " << errCode << endl;
-			_recvEvent.owner = nullptr;
+			HandleError(errCode);
+			_connectEvent.owner = nullptr;
+			return false;
+		}
+	}
+	return true;
+}
+
+void Session::RegisterDisconnect()
+{
+	_disconnectEvent.Init();
+	_disconnectEvent.owner = shared_from_this();
+
+	if (SOCKET_ERROR == SocketUtils::DisconnectEx(_socket, &_disconnectEvent, TF_REUSE_SOCKET, 0)) {
+		int32 errCode = WSAGetLastError();
+		if (errCode != WSA_IO_PENDING) {
+			HandleError(errCode);
+			_disconnectEvent.owner = nullptr;
+			return;
 		}
 	}
 }
 
-void Session::ProcessRecv()
+void Session::RegisterRecv()
 {
-	_recvEvent.owner = nullptr;
-
-	OnRecv();
-	::memset(_recvBuffer, '\0', sizeof(_recvBuffer));
-	RegisterRecv();
-}
-
-void Session::Send(BYTE* buffer)
-{
-	::memcpy(_sendBuffer, buffer,sizeof(buffer));
-	RegisterSend();
+	_recvEvent.Init();
+	_recvEvent.owner = shared_from_this();
+	DWORD numOfBytes = 0;
+	DWORD flag = 0;
+	WSABUF wsa;
+	wsa.buf = reinterpret_cast<char*>(_sendBuffer);
+	wsa.len = BUF_SIZE;
+	if (SOCKET_ERROR == ::WSARecv(_socket, &wsa, 1, OUT &numOfBytes, OUT &flag, &_recvEvent, nullptr)) {
+		int32 errCode = WSAGetLastError();
+		if (errCode != WSA_IO_PENDING) {
+			HandleError(errCode);
+			_recvEvent.owner = nullptr;
+			return;
+		}
+	}
 }
 
 void Session::RegisterSend()
 {
+	_sendEvent.Init();
 	_sendEvent.owner = shared_from_this();
-
+	DWORD numOfBytes;
 	WSABUF wsa;
 	wsa.buf = reinterpret_cast<char*>(_sendBuffer);
-	wsa.len = recvSize;
-	DWORD numOfBytes = 0;
-	if (SOCKET_ERROR == ::WSASend(_socket, &wsa, 1, OUT &numOfBytes, 0, &_sendEvent, nullptr))
-	{
-		int32 errCode = ::WSAGetLastError();
+	wsa.len = BUF_SIZE;
+	if (SOCKET_ERROR == ::WSASend(_socket, &wsa, 1, OUT &numOfBytes, 0, &_sendEvent, nullptr)) {
+		int32 errCode = WSAGetLastError();
 		if (errCode != WSA_IO_PENDING) {
-			cout << "Send Handle Error : " << errCode << endl;
+			HandleError(errCode);
 			_sendEvent.owner = nullptr;
+			return;
 		}
 	}
 }
 
-void Session::ProcessSend()
+void Session::ProcessConnect()
+{
+	_connectEvent.owner = nullptr;
+	_connected.store(true);
+
+	OnConnected();
+
+	RegisterRecv(); // recv start
+}
+
+void Session::ProcessDisconnect()
+{
+	_disconnectEvent.owner = nullptr;
+	OnDisconnected();
+}
+
+void Session::ProcessRecv(int32 numOfBytes)
+{
+	_recvEvent.owner = nullptr;
+	if (numOfBytes == 0) { // 연결 끊김
+		Disconnect(L"Recv 0");
+		return;
+	}
+	OnRecv(numOfBytes);
+	//recvbuffer clean
+	RegisterRecv();
+}
+
+void Session::ProcessSend(int32 numOfBytes)
 {
 	_sendEvent.owner = nullptr;
+	if (numOfBytes == 0) { // 연결 끊김
+		Disconnect(L"Send 0");
+		return;
+	}
+	// send buffer clear
+	OnSend(numOfBytes);
+}
 
-	OnSend();
 
-//	RegisterSend();
+void Session::HandleError(int32 errCode)
+{
+	switch (errCode) {
+	case WSAECONNRESET:
+	case WSAECONNABORTED:
+		Disconnect(L"Invalid Connect");
+		break;
+	default:
+		cout << "Handle Error : " << errCode << endl;
+		break;
+	}
 }

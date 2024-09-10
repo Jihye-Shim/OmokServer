@@ -24,6 +24,15 @@
     <ClInclude Include="Types.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="IocpCore.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="IocpEvent.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Listener.h">
+      <Filter>Network</Filter>
+    </ClInclude>
     <ClInclude Include="Session.h">
       <Filter>Network</Filter>
     </ClInclude>
@@ -39,6 +48,15 @@
       <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="SocketAddress.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="IocpCore.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="IocpEvent.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Listener.cpp">
       <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="Session.cpp">

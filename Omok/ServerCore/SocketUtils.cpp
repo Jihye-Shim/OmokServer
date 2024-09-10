@@ -1,15 +1,31 @@
 #include "pch.h"
 #include "SocketUtils.h"
 
+LPFN_CONNECTEX SocketUtils::ConnectEx = nullptr;
+LPFN_DISCONNECTEX SocketUtils::DisconnectEx = nullptr;
+LPFN_ACCEPTEX SocketUtils::AcceptEx = nullptr;
+
 void SocketUtils::Init()
 {
 	WSAData wsaData;
 	ASSERT_CRASH(::WSAStartup(MAKEWORD(2, 2), OUT & wsaData) == 0);
+
+	SOCKET DummySocket = CreateSocket();
+	ASSERT_CRASH(BindWindowsFunction(DummySocket, WSAID_CONNECTEX, reinterpret_cast<LPVOID*>(&ConnectEx)));
+	ASSERT_CRASH(BindWindowsFunction(DummySocket, WSAID_DISCONNECTEX, reinterpret_cast<LPVOID*>(&DisconnectEx)));
+	ASSERT_CRASH(BindWindowsFunction(DummySocket, WSAID_ACCEPTEX, reinterpret_cast<LPVOID*>(&AcceptEx)));
+	CloseSocket(DummySocket);
 }
 
 void SocketUtils::Clear()
 {
 	::WSACleanup();
+}
+
+bool SocketUtils::BindWindowsFunction(SOCKET dummySocket, GUID guid, LPVOID* fn)
+{
+	DWORD dwBytes = 0;
+	return SOCKET_ERROR != ::WSAIoctl(dummySocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), fn, sizeof(fn), OUT &dwBytes, nullptr, nullptr);
 }
 
 SOCKET SocketUtils::CreateSocket()
@@ -24,6 +40,38 @@ void SocketUtils::CloseSocket(SOCKET& socket)
 	socket = INVALID_SOCKET;
 }
 
+bool SocketUtils::SetLinger(SOCKET socket, uint16 onoff, uint16 linger)
+{
+	LINGER option;
+	option.l_onoff = onoff;
+	option.l_linger = linger;
+	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, SO_LINGER, (const char*)&option, sizeof(option));
+}
+
+bool SocketUtils::SetReuseAddr(SOCKET socket, bool flag)
+{
+	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&flag, sizeof(bool));
+}
+
+bool SocketUtils::SetRecvBufferSize(SOCKET socket, int size)
+{
+	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(int));
+}
+
+bool SocketUtils::SetSendBufferSize(SOCKET socket, int size)
+{
+	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(int));
+}
+
+bool SocketUtils::SetTcpNoDelay(SOCKET socket, bool flag)
+{
+	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, TCP_NODELAY, (const char*)&flag, sizeof(bool));
+}
+
+bool SocketUtils::SetUpdateAcceptSocket(SOCKET socket, SOCKET listenSocket)
+{
+	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (const char*)&listenSocket, sizeof(SOCKET));
+}
 
 bool SocketUtils::Bind(SOCKET socket, SocketAddress sockAddr)
 {
@@ -44,17 +92,5 @@ bool SocketUtils::BindAnyAddress(SOCKET socket, uint16 port)
 bool SocketUtils::Listen(SOCKET socket, int32 backlog)
 {
 	return SOCKET_ERROR != ::listen(socket, backlog);
-}
-
-bool SocketUtils::Accept(SOCKET listenSocket, SocketAddress* sockAddr)
-{
-	int32 addLen = sizeof(SOCKADDR_IN);
-	return SOCKET_ERROR != ::accept(listenSocket, reinterpret_cast<SOCKADDR*>(&sockAddr->GetSockAddr()), &addLen);
-}
-
-bool SocketUtils::Connect(SOCKET socket, SocketAddress* sockAddr)
-{
-	int32 addLen = sizeof(SOCKADDR_IN);
-	return SOCKET_ERROR != ::connect(socket, reinterpret_cast<SOCKADDR*>(&sockAddr->GetSockAddr()), addLen);
 }
 

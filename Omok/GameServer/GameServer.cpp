@@ -1,92 +1,46 @@
 ﻿#include "pch.h"
-#include "SocketUtils.h"
-#include "Session.h"
-
-set<shared_ptr<Session>> sessions;
+#include "Listener.h"
+#include "GameSession.h"
+#include "GameSessionManager.h"
 
 void HandleError(const char* cause){
 	int32 errCode = ::WSAGetLastError();
 	cout << cause << " ErrorCode : " << errCode << endl;
 }
 
-void WorkThread(HANDLE iocpHandle) {
-	while (true) {
-		DWORD numOfBytes;
-		IocpEvent* iocpEvent = nullptr;
-		ULONG_PTR key;
-		if(::GetQueuedCompletionStatus(iocpHandle, OUT &numOfBytes, OUT &key, OUT (LPOVERLAPPED*)(&iocpEvent), INFINITE)) {
-			if (numOfBytes == 0) // disconnect???
-				continue;
-			shared_ptr<Session> owner = iocpEvent->owner;
-			owner->Dispatch(iocpEvent, numOfBytes);
-		}
-	}
-}
-
-void Broadcast(BYTE* buffer) {
-	for (auto session : sessions)
-		session->Send(buffer);
-}
-
-class GameSession : public Session {
-public:
-	void OnSend() override {
-//		cout << "Send Message!" << endl;
-	}
-	void OnRecv() override {
-		cout << "Recv: " << _recvBuffer << endl;
-		//::memcpy(_sendBuffer, _recvBuffer, BUFSIZE);
-		Broadcast(_recvBuffer);
-	}
-};
-
-
+int32 threadCount = thread::hardware_concurrency();// (thread::hardware_concurrency()) *2 + 1;
 
 int main()
 {
+	cout << "Concurrency: " << threadCount << endl;
+
+	/* 초기화 */
 	SocketUtils::Init();
+	IocpCoreRef iocpCore = make_shared<IocpCore>();
 
-	SOCKET listenSocket = SocketUtils::CreateSocket();
+	/* Register Accept */
+	ListenerRef listener = make_shared<Listener>(SocketAddress(L"127.0.0.1", 7777), []() {return make_shared<GameSession>(); });
+	ASSERT_CRASH(iocpCore->Register(listener));
 
-	if (false == SocketUtils::BindAnyAddress(listenSocket, 7777)) {
-		HandleError("Bind");
-		return 0;
-	}
+	ASSERT_CRASH(listener->StartAccept());
 
-	if (false == SocketUtils::Listen(listenSocket)){
-		HandleError("Listen");
-		return 0;
-	}
-	cout << "Server: Ready to Accept" << endl;
+	cout << "Ready to Accept!" << endl;
 
-	
-
-	HANDLE iocpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
-	ASSERT_CRASH(iocpHandle != INVALID_HANDLE_VALUE);
-	
-	// CP 작업용 스레드
+	/* WorkThread */
 	vector<thread*> threads;
-	thread* t;
-	for (int i = 0; i < 2; i++) {
-		t = new thread(WorkThread, iocpHandle);
-		threads.push_back(t);
+	for (int32 i = 0; i < threadCount; i++) {
+		threads.push_back(new thread([&]() {
+			while (true) {
+				iocpCore->Dispatch();
+			}
+		}));
 	}
 
-	//Main -> Accept thread
+	// Broadcast
+	BYTE sendBuffer[100] = "Hello world";
 	while (true) {
-		SOCKADDR_IN clientAddress;
-		int32 addLen = sizeof(clientAddress);
-		SOCKET clientSocket = ::accept(listenSocket, OUT(SOCKADDR*)(&clientAddress), &addLen);
-		if (clientSocket == INVALID_SOCKET)
-			continue; // 나중에 비동기로
-		cout << " Accept!" << endl;
-		auto session = std::make_shared<GameSession>();
-		session->_socket = clientSocket;
-		session->SetSocketAddress(SocketAddress(clientAddress));
-		sessions.insert(session);
-		::CreateIoCompletionPort((HANDLE)session->GetHandle(), iocpHandle, 0, 0);
-
-		session->RegisterRecv();
+		GSessionManager.Broadcast(sendBuffer);
+		this_thread::sleep_for(1s);
 	}
 	for (auto t : threads)
 		t->join();

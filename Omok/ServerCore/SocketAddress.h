@@ -1,4 +1,5 @@
 #pragma once
+using SocketAddressRef = shared_ptr<class SocketAddress>;
 
 class SocketAddress
 {

@@ -7,73 +7,54 @@ void HandleError(const char* cause) {
 	cout << cause << " ErrorCode : " << errCode << endl;
 }
 
-void WorkThread(HANDLE iocpHandle) {
-	while (true) {
-		DWORD numOfBytes;
-		IocpEvent* iocpEvent = nullptr;
-		ULONG_PTR key;
-		if (::GetQueuedCompletionStatus(iocpHandle, OUT & numOfBytes, OUT & key, OUT(LPOVERLAPPED*)(&iocpEvent), INFINITE)) {
-			if (numOfBytes == 0) // disconnect???
-				continue;
-			shared_ptr<Session> owner = iocpEvent->owner;
-			owner->Dispatch(iocpEvent, numOfBytes);
-		}
-	}
-}
-
 class ClientSession : public Session {
 public:
-	void OnSend() override {
-//		cout << "Send!" << endl;
-		RegisterRecv();
+	~ClientSession() {
+		cout << "~ClientSession" << endl;
 	}
-	void OnRecv() override {
-		cout << _recvBuffer << endl;
+	virtual void OnConnected() override {
+		cout << "Connected to Server!" << endl;
+	}
+	virtual void OnSend(int32 numOfBytes) override {
+//		cout << "Send!" << endl;
+	}
+	virtual void OnRecv(int32 numOfBytes) override {
+		cout << "Recv Len:" << numOfBytes << endl;
+	}
+	virtual void OnDisconnected() override {
+		//
 	}
 };
+using ClientSessionRef = shared_ptr<ClientSession>;
+
+int32 sessionCount = 1000;
+int32 threadCount = 2;
 
 int main()
 {
 	this_thread::sleep_for(1s);
 
+	/* 초기화 */
 	SocketUtils::Init();
+	IocpCoreRef iocpCore = make_shared<IocpCore>();
 
-	SOCKET clientSocket = SocketUtils::CreateSocket();
-	SocketAddress serverAddress = SocketAddress(L"127.0.0.1", 7777);
-
-	if (false == SocketUtils::Connect(clientSocket, &serverAddress)) {
-		HandleError("Connect");
-		return 0;
+	/* Connect*/
+	vector<ClientSessionRef> sessions;
+	for (int32 i = 0; i < sessionCount; i++) {
+		ClientSessionRef session = make_shared<ClientSession>();
+		sessions.push_back(session);
+		iocpCore->Register(session);
+		ASSERT_CRASH(session->Connect(SocketAddress(L"127.0.0.1", 7777)));
 	}
-	cout << "Connect to Server!" << endl;
-	auto clientSession = std::make_shared<ClientSession>();
-	clientSession->_socket = clientSocket;
-	clientSession->SetSocketAddress(serverAddress);
 
-	HANDLE iocpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
-	ASSERT_CRASH(iocpHandle != INVALID_HANDLE_VALUE);
-	
-	::CreateIoCompletionPort((HANDLE)clientSession->GetHandle(), iocpHandle, 0, 0);
-
-	// CP 작업용 스레드
+	/* workthread */ 
 	vector<thread*> threads;
-	thread *t;
-	for (int i = 0; i < 2; i++) {
-		t = new thread(WorkThread, iocpHandle);
-		threads.push_back(t);
-	}
-	cout << "Your name: ";
-	char name[100];
-	cin >> name;
-	clientSession->_name = name;
-	//Main: Input thread
-	char sendBuffer[1000] = "";
-	while (true) {
-		cout << "Input: ";
-		cin >> sendBuffer;
-		::memcpy(clientSession->_sendBuffer, sendBuffer, BUFSIZE);
-		clientSession->RegisterSend();
-	//	this_thread::sleep_for(1s);
+	for (int32 i = 0; i < threadCount; i++) {
+		threads.push_back(new thread([&]() {
+			while (true) {
+				iocpCore->Dispatch();
+			}
+		}));
 	}
 
 	for (auto t : threads)
