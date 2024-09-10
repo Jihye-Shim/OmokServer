@@ -10,6 +10,12 @@ using uint16 = unsigned __int16;
 using uint32 = unsigned __int32;
 using uint64 = unsigned __int64;
 
+#include <memory>
+using IocpCoreRef = std::shared_ptr<class IocpCore>;
+using IocpObjectRef = std::shared_ptr<class IocpObject>;
+using ListenerRef = std::shared_ptr<class Listener>;
+using SessionRef = std::shared_ptr<class Session>;
+
 // Macro
 #define OUT
 
