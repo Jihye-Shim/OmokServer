@@ -20,6 +20,7 @@ public:
 	static bool SetRecvBufferSize(SOCKET socket, int size);
 	static bool SetSendBufferSize(SOCKET socket, int size);
 	static bool SetTcpNoDelay(SOCKET socket, bool flag);
+	static bool SetKeepAlive(SOCKET socket, bool flag);
 	static bool SetUpdateAcceptSocket(SOCKET socket, SOCKET listenSocket);
 
 	static bool Bind(SOCKET socket, SocketAddress sockAddr);

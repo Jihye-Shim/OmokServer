@@ -68,6 +68,11 @@ bool SocketUtils::SetTcpNoDelay(SOCKET socket, bool flag)
 	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, TCP_NODELAY, (const char*)&flag, sizeof(bool));
 }
 
+bool SocketUtils::SetKeepAlive(SOCKET socket, bool flag)
+{
+	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, (const char*)&flag, sizeof(bool));
+}
+
 bool SocketUtils::SetUpdateAcceptSocket(SOCKET socket, SOCKET listenSocket)
 {
 	return SOCKET_ERROR != ::setsockopt(socket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (const char*)&listenSocket, sizeof(SOCKET));
