@@ -2,7 +2,8 @@
 #include "Listener.h"
 #include "Session.h"
 
-Listener::Listener(SocketAddress sockAddr, SessionFactory sessionFactory) : _sockAddress(sockAddr), _sessionFactory(sessionFactory)
+Listener::Listener(SocketAddress sockAddr, IocpCoreRef iocpCore, SessionFactory sessionFactory) 
+	: _sockAddress(sockAddr), _iocpCore(iocpCore), _sessionFactory(sessionFactory)
 {
 	_socket = SocketUtils::CreateSocket();
 	ASSERT_CRASH(_socket != INVALID_SOCKET);
@@ -26,7 +27,6 @@ void Listener::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 
 bool Listener::StartAccept()
 {
-
 	// Socket 초기화 및 연결 준비
 	if (!SocketUtils::SetReuseAddr(_socket, true))
 		return false;
@@ -38,7 +38,7 @@ bool Listener::StartAccept()
 		return false;
 	
 	//AcceptEvent 관리
-	int32 acceptCount = 1;
+	int32 acceptCount = 100;
 	for (int32 i = 0; i < acceptCount; i++) {
 		AcceptEvent* acceptEvent = new AcceptEvent();
 		acceptEvent->owner = shared_from_this();
@@ -56,6 +56,7 @@ void Listener::CloseSocket()
 void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 {
 	SessionRef session = _sessionFactory();
+	_iocpCore->Register(session);
 	acceptEvent->Init();
 	acceptEvent->session = session;
 	DWORD dwBytes;

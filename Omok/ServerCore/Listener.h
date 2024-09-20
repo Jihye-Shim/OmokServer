@@ -8,7 +8,7 @@ using SessionFactory = function<SessionRef(void)>;
 class Listener : public IocpObject
 {
 public:
-	Listener(SocketAddress sockAddr, SessionFactory sessionFactory);
+	Listener(SocketAddress sockAddr, IocpCoreRef iocpCore, SessionFactory sessionFactory);
 	~Listener();
 	
 	/* 인터페이스 */
@@ -26,6 +26,7 @@ private:
 	vector<AcceptEvent*> _acceptEvents;
 
 private:
+	IocpCoreRef _iocpCore;
 	SOCKET _socket;
 	SocketAddress _sockAddress; // my
 	SessionFactory _sessionFactory;

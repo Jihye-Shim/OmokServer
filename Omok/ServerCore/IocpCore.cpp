@@ -24,7 +24,7 @@ bool IocpCore::Register(IocpObjectRef iocpObject)
 bool IocpCore::Dispatch(uint32 timeoutMs)
 {
 	IocpEvent* iocpEvent = nullptr;
-	DWORD numOfBytes;
+	DWORD numOfBytes = 0;
 	ULONG_PTR key;
 	if (::GetQueuedCompletionStatus(_iocpHandle, OUT & numOfBytes, 
 		OUT & key, OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvent), timeoutMs)) {
@@ -37,6 +37,7 @@ bool IocpCore::Dispatch(uint32 timeoutMs)
 		case WAIT_TIMEOUT:
 			return false;
 		default:
+		//	cout << "IOCP error: " << errCode << endl;
 			IocpObjectRef owner = iocpEvent->owner;
 			owner->Dispatch(iocpEvent, numOfBytes);
 			break;

@@ -4,6 +4,7 @@
 Session::Session()
 {
 	_socket = SocketUtils::CreateSocket();
+	ASSERT_CRASH(_socket != INVALID_SOCKET);
 }
 Session::~Session()
 {
@@ -13,7 +14,7 @@ Session::~Session()
 void Session::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 {
 	switch (iocpEvent->_eventType) {
-	case EventType::Connnect:
+	case EventType::Connect:
 		ProcessConnect();
 		break;
 	case EventType::Disconnect:
@@ -23,7 +24,7 @@ void Session::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 		ProcessRecv(numOfBytes);
 		break;
 	case EventType::Send:
-		ProcessSend(numOfBytes);
+		ProcessSend(static_cast<SendEvent*>(iocpEvent), numOfBytes);
 		break;
 	default:
 		break;
@@ -32,7 +33,6 @@ void Session::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 
 bool Session::Connect(SocketAddress targetAddress)
 {
-
 	return RegisterConnect(targetAddress);
 }
 
@@ -50,9 +50,12 @@ void Session::Send(BYTE* sendBuffer)
 {
 	if (false == IsConnected())
 		return;
-	::memcpy(_sendBuffer, sendBuffer, sizeof(sendBuffer));
-	// 나중에 sendBuffer 패킷 개선
-	RegisterSend();
+	SendEvent* sendEvent = new SendEvent();
+	sendEvent->owner = shared_from_this();
+	::memcpy(_sendBuffer, sendBuffer, strlen((char*)sendBuffer) + 1);
+
+	LOCKGUARD;
+	RegisterSend(sendEvent);
 }
 
 bool Session::RegisterConnect(SocketAddress targetAddress)
@@ -62,7 +65,7 @@ bool Session::RegisterConnect(SocketAddress targetAddress)
 	// _socket 초기화
 	if (false == SocketUtils::SetReuseAddr(_socket, true))
 		return false;
-	if (false == SocketUtils::SetTcpNoDelay(_socket, true))
+	if (false == SocketUtils::SetKeepAlive(_socket, true))
 		return false;
 	if (false == SocketUtils::BindAnyAddress(_socket, 0))
 		return false;
@@ -93,7 +96,6 @@ void Session::RegisterDisconnect()
 	if (SOCKET_ERROR == SocketUtils::DisconnectEx(_socket, &_disconnectEvent, TF_REUSE_SOCKET, 0)) {
 		int32 errCode = WSAGetLastError();
 		if (errCode != WSA_IO_PENDING) {
-			HandleError(errCode);
 			_disconnectEvent.owner = nullptr;
 			return;
 		}
@@ -102,12 +104,15 @@ void Session::RegisterDisconnect()
 
 void Session::RegisterRecv()
 {
+	if (false == IsConnected())
+		return;
+
 	_recvEvent.Init();
 	_recvEvent.owner = shared_from_this();
 	DWORD numOfBytes = 0;
 	DWORD flag = 0;
 	WSABUF wsa;
-	wsa.buf = reinterpret_cast<char*>(_sendBuffer);
+	wsa.buf = reinterpret_cast<char*>(_recvBuffer);
 	wsa.len = BUF_SIZE;
 	if (SOCKET_ERROR == ::WSARecv(_socket, &wsa, 1, OUT &numOfBytes, OUT &flag, &_recvEvent, nullptr)) {
 		int32 errCode = WSAGetLastError();
@@ -119,19 +124,21 @@ void Session::RegisterRecv()
 	}
 }
 
-void Session::RegisterSend()
+void Session::RegisterSend(SendEvent* sendEvent)
 {
-	_sendEvent.Init();
-	_sendEvent.owner = shared_from_this();
-	DWORD numOfBytes;
+	if (false == IsConnected())
+		return;
+
+	DWORD numOfBytes = 0;
 	WSABUF wsa;
 	wsa.buf = reinterpret_cast<char*>(_sendBuffer);
 	wsa.len = BUF_SIZE;
-	if (SOCKET_ERROR == ::WSASend(_socket, &wsa, 1, OUT &numOfBytes, 0, &_sendEvent, nullptr)) {
+	if (SOCKET_ERROR == ::WSASend(_socket, &wsa, 1, OUT &numOfBytes, 0, sendEvent, nullptr)) {
 		int32 errCode = WSAGetLastError();
 		if (errCode != WSA_IO_PENDING) {
 			HandleError(errCode);
-			_sendEvent.owner = nullptr;
+			sendEvent->owner = nullptr;
+			::memset(_sendBuffer, 0, BUF_SIZE);
 			return;
 		}
 	}
@@ -165,9 +172,9 @@ void Session::ProcessRecv(int32 numOfBytes)
 	RegisterRecv();
 }
 
-void Session::ProcessSend(int32 numOfBytes)
+void Session::ProcessSend(SendEvent* sendEvent, int32 numOfBytes)
 {
-	_sendEvent.owner = nullptr;
+	sendEvent->owner = nullptr;
 	if (numOfBytes == 0) { // 연결 끊김
 		Disconnect(L"Send 0");
 		return;

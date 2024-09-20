@@ -3,7 +3,7 @@
 enum class EventType {
 	Send,
 	Recv,
-	Connnect,
+	Connect,
 	Disconnect,
 	Accept
 };
@@ -30,7 +30,7 @@ public:
 
 class ConnectEvent : public IocpEvent {
 public:
-	ConnectEvent() : IocpEvent(EventType::Connnect) {}
+	ConnectEvent() : IocpEvent(EventType::Connect) {}
 };
 
 class DisconnectEvent : public IocpEvent {

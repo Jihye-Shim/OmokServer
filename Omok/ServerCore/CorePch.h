@@ -4,6 +4,7 @@
 
 #include <thread>
 #include <atomic>
+#include <mutex>
 
 #include <vector>
 #include <array>
@@ -21,3 +22,4 @@ using namespace std;
 #pragma comment(lib, "ws2_32.lib")
 
 #include "SocketUtils.h"
+#include "Lock.h"

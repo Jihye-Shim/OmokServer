@@ -5,7 +5,7 @@
 class Session : public IocpObject
 {
 	enum {
-		BUF_SIZE = 100
+		BUF_SIZE = 1000
 	};
 public:
 	Session();
@@ -38,15 +38,14 @@ public:
 	bool RegisterConnect(SocketAddress targetAddress);
 	void RegisterDisconnect();
 	void RegisterRecv();
-	void RegisterSend();
+	void RegisterSend(SendEvent* sendEvent);
 
 	void ProcessConnect();
 	void ProcessDisconnect();
 	void ProcessRecv(int32 numOfBytes);
-	void ProcessSend(int32 numOfBytes);
+	void ProcessSend(SendEvent* sendEvent, int32 numOfBytes);
 
 	void HandleError(int32 errCode);
-
 public:
 	//USELOCK
 	
@@ -57,13 +56,13 @@ private:
 	ConnectEvent _connectEvent;
 	DisconnectEvent _disconnectEvent;
 	RecvEvent _recvEvent;
-	SendEvent _sendEvent;
+//	SendEvent _sendEvent;
 
 private:
 	SOCKET _socket;
 	SocketAddress _sockAddress; // Client: my(bindAnyAddress) Server: target(getpeername)
 	
-	// USE_LOCK
+	USE_LOCK
 //	BYTE recvBuffer[1000];
 //	BYTE sendBuffer[1000];
 	atomic<bool> _connected = false;
