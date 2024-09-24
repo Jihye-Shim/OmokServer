@@ -62,12 +62,20 @@ int main()
 	SocketUtils::Init();
 	IocpCoreRef iocpCore = make_shared<IocpCore>();
 
-	/* Connect*/
-	for (int32 i = 0; i < sessionCount; i++) {
-		ClientSessionRef session = make_shared<ClientSession>();
-		iocpCore->Register(session);
-		ASSERT_CRASH(session->Connect(SocketAddress(L"127.0.0.1", 7777)));
-	}
+	// /* Connect*/
+	// multi-dummy
+	//for (int32 i = 0; i < sessionCount; i++) {
+	//	ClientSessionRef session = make_shared<ClientSession>();
+	//	iocpCore->Register(session);
+	//	sessionManager.Add(session);
+	//	ASSERT_CRASH(session->Connect(SocketAddress(L"127.0.0.1", 7777)));
+	//}
+
+	/* Single Connect */
+	ClientSessionRef session = make_shared<ClientSession>();
+	iocpCore->Register(session);
+	ASSERT_CRASH(session->Connect(SocketAddress(L"127.0.0.1", 7777)));
+
 	/* workthread */
 	vector<thread*> threads;
 	for (int32 i = 0; i < threadCount; i++) {
@@ -77,6 +85,23 @@ int main()
 			}
 		}));
 	}
+
+	threads.push_back(new thread([&]() {
+		while (true) {
+			string input;
+			getline(cin, input);
+			// unsigned char 배열로 변환
+			BYTE ucharMessage[256];  // 256 크기의 배열 선언
+			memcpy(ucharMessage, input.c_str(), input.size());
+
+			// 배열의 마지막에 NULL 문자 추가 (C 스타일 문자열일 경우)
+			ucharMessage[input.size()] = '\0';
+			session->Send(ucharMessage);
+			// 패킷 직렬화
+			// session->send
+		}
+	}));
+	
 	for (auto t : threads)
 		t->join();
 

@@ -14,6 +14,7 @@
 #include <tuple>
 
 #include <iostream>
+#include <string>
 using namespace std;
 
 #include <winsock2.h>

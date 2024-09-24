@@ -1,6 +1,7 @@
 #pragma once
 
 using BYTE = unsigned char;
+using WCHAR = wchar_t;
 using int8 = __int8;
 using int16 = __int16;
 using int32 = __int32;
