@@ -7,12 +7,12 @@ public:
 	void Add(GameSessionRef session);
 	void Remove(GameSessionRef session);
 	void Broadcast(BYTE* buffer);
+	int32 GetSessionCount() { return _sessionCount; }
 
-	int32 _sessionCount = 0;
 private:
-	//USE_LOCK
+	USE_LOCK
 	set<GameSessionRef> _sessions;
-
+	int32 _sessionCount = 0;
 };
 
 extern GameSessionManager GSessionManager;
