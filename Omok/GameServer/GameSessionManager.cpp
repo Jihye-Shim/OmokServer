@@ -6,14 +6,14 @@ GameSessionManager GSessionManager;
 
 void GameSessionManager::Add(GameSessionRef session)
 {
-	//WRITE_LOCK
+	LOCKGUARD
 	_sessions.insert(session);
 	_sessionCount++;
 }
 
 void GameSessionManager::Remove(GameSessionRef session)
 {
-	//WRITE_LOCK
+	LOCKGUARD
 	_sessions.erase(session);
 	_sessionCount--;
 }
