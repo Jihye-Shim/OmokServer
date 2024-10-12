@@ -21,6 +21,9 @@ using namespace std;
 #include <mswsock.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
+#include <locale>
 
 #include "SocketUtils.h"
 #include "Lock.h"
+#include "Packet.h"
+#include "Stream.h"

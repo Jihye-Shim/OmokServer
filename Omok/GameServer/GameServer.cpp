@@ -8,7 +8,7 @@ void HandleError(const char* cause){
 	cout << cause << " ErrorCode : " << errCode << endl;
 }
 
-int32 threadCount = 5;// thread::hardware_concurrency();// (thread::hardware_concurrency()) *2 + 1;
+int32 threadCount = 5;// thread::hardware_concurrency(); // (thread::hardware_concurrency()) *2 + 1;
 
 int main()
 {
@@ -17,11 +17,11 @@ int main()
 	/* 초기화 */
 	SocketUtils::Init();
 	IocpCoreRef iocpCore = make_shared<IocpCore>();
+	setlocale(LC_ALL, "");
 
 	/* Register Accept */
 	ListenerRef listener = make_shared<Listener>(SocketAddress(L"127.0.0.1", 7777), iocpCore, []() {return make_shared<GameSession>(); });
 	ASSERT_CRASH(iocpCore->Register(listener));
-
 	ASSERT_CRASH(listener->StartAccept());
 
 	cout << "Ready to Accept!" << endl;
@@ -35,13 +35,7 @@ int main()
 			}
 		}));
 	}
-	this_thread::sleep_for(3s);
-	// Broadcast
-	BYTE sendBuffer[100] = "Hello world";
-	while (true) {
-		//GSessionManager.Broadcast(sendBuffer);
-		//this_thread::sleep_for(500ms);
-	}
+
 	for (auto t : threads)
 		t->join();
 

@@ -21,6 +21,7 @@ class SendEvent : public IocpEvent {
 public:
 	SendEvent() : IocpEvent(EventType::Send) {}
 public:
+	OutputMemoryStreamRef _inStream;
 };
 
 class RecvEvent : public IocpEvent {

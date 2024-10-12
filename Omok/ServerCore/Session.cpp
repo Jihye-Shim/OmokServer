@@ -46,14 +46,13 @@ void Session::Disconnect(const WCHAR* cause)
 	RegisterDisconnect();
 }
 
-void Session::Send(BYTE* sendBuffer)
+void Session::Send(OutputMemoryStreamRef inStream)
 {
 	if (false == IsConnected())
 		return;
 	SendEvent* sendEvent = new SendEvent();
 	sendEvent->owner = shared_from_this();
-	::memcpy(_sendBuffer, sendBuffer, strlen((char*)sendBuffer) + 1);
-
+	sendEvent->_inStream = inStream;
 	LOCKGUARD;
 	RegisterSend(sendEvent);
 }
@@ -131,14 +130,13 @@ void Session::RegisterSend(SendEvent* sendEvent)
 
 	DWORD numOfBytes = 0;
 	WSABUF wsa;
-	wsa.buf = reinterpret_cast<char*>(_sendBuffer);
-	wsa.len = BUF_SIZE;
+	wsa.buf = reinterpret_cast<char*>(sendEvent->_inStream->GetBufferPtr());
+	wsa.len = sendEvent->_inStream->GetLength();
 	if (SOCKET_ERROR == ::WSASend(_socket, &wsa, 1, OUT &numOfBytes, 0, sendEvent, nullptr)) {
 		int32 errCode = WSAGetLastError();
 		if (errCode != WSA_IO_PENDING) {
 			HandleError(errCode);
 			sendEvent->owner = nullptr;
-			::memset(_sendBuffer, 0, BUF_SIZE);
 			return;
 		}
 	}
@@ -167,6 +165,7 @@ void Session::ProcessRecv(int32 numOfBytes)
 		Disconnect(L"Recv 0");
 		return;
 	}
+
 	OnRecv(numOfBytes);
 	//recvbuffer clean
 	RegisterRecv();

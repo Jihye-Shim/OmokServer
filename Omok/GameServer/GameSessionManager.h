@@ -6,7 +6,7 @@ class GameSessionManager // 技记 包府
 public:
 	void Add(GameSessionRef session);
 	void Remove(GameSessionRef session);
-	void Broadcast(BYTE* buffer);
+	void Broadcast(OutputMemoryStreamRef outStream);
 	int32 GetSessionCount() { return _sessionCount; }
 
 private:

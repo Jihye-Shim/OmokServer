@@ -10,5 +10,9 @@ public:
 	virtual void OnSend(int32 numOfBytes) override;
 	virtual void OnRecv(int32 numOfBytes) override;
 	virtual void OnDisconnected() override;
+
+private:
+	WCHAR* utf8ToWChar(BYTE* utf8);
+//	void ProcessPacket()
 };
 

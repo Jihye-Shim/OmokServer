@@ -18,8 +18,8 @@ void GameSessionManager::Remove(GameSessionRef session)
 	_sessionCount--;
 }
 
-void GameSessionManager::Broadcast(BYTE* buffer)
+void GameSessionManager::Broadcast(OutputMemoryStreamRef outStream)
 {
 	for (auto session : _sessions)
-		session->Send(buffer);
+		session->Send(outStream);
 }

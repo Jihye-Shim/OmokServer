@@ -5,7 +5,7 @@
 class Session : public IocpObject
 {
 	enum {
-		BUF_SIZE = 1000
+		BUF_SIZE = 2048
 	};
 public:
 	Session();
@@ -25,7 +25,8 @@ public:
 	/* 외부 사용 */
 	bool Connect(SocketAddress targetAddress);
 	void Disconnect(const WCHAR* cause);
-	void Send(BYTE* sendBuffer);
+//	void Send(BYTE* sendBuffer);
+	void Send(OutputMemoryStreamRef inStream);
 
 public:
 	/* 컨텐츠 오버로드 */
@@ -48,15 +49,13 @@ public:
 	void HandleError(int32 errCode);
 public:
 	//USELOCK
-	
 	BYTE _recvBuffer[BUF_SIZE];
-	BYTE _sendBuffer[BUF_SIZE];
+//	BYTE _sendBuffer[BUF_SIZE];
 
 private:
 	ConnectEvent _connectEvent;
 	DisconnectEvent _disconnectEvent;
 	RecvEvent _recvEvent;
-//	SendEvent _sendEvent;
 
 private:
 	SOCKET _socket;

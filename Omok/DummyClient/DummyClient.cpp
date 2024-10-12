@@ -41,10 +41,32 @@ public:
 		cout << "Connected to Server!" << endl;
 	}
 	virtual void OnSend(int32 numOfBytes) override {
-		//		cout << "Send!" << endl;
+	//	cout << "Send!" << endl;
 	}
 	virtual void OnRecv(int32 numOfBytes) override {
-		cout << "Recv: " << _recvBuffer << endl;
+	//	cout << "Recv: " << _recvBuffer << endl;
+		InputMemoryStream inStream(_recvBuffer, numOfBytes);
+		PacketHeader header;
+		inStream.Read(header.totalSize);
+		if (header.totalSize > numOfBytes) {
+			//패킷 다 안 왔을 때 처리
+		}
+		inStream.Read(header.packetId);
+		PacketId id = static_cast<PacketId>(header.packetId);
+		if (id == PacketId::Login_Res) {
+			cout << "Success to Enter Lobby" << endl;
+		}
+		else if (id == PacketId::Lobby_Enter_Broad) {
+			PacketLobbyEnterBroad pkt;
+			inStream.Read(pkt.userName, MAX_USER_NAME_SIZE);	
+			cout << pkt.userName << "님이 입장하셨습니다." << endl;
+		}
+		else if (id == PacketId::Lobby_Chat_Broad) {
+			PacketLobbyChatBroad pkt;
+			inStream.Read(pkt.userName, MAX_USER_NAME_SIZE);
+			inStream.Read(pkt.msg, MAX_CHAT_SIZE);
+			cout << pkt.userName << ": " << pkt.msg << endl;
+		}
 	}
 	virtual void OnDisconnected() override {
 		sessionManager.Remove(static_pointer_cast<ClientSession>(shared_from_this()));
@@ -71,6 +93,7 @@ int main()
 	//	ASSERT_CRASH(session->Connect(SocketAddress(L"127.0.0.1", 7777)));
 	//}
 
+
 	/* Single Connect */
 	ClientSessionRef session = make_shared<ClientSession>();
 	iocpCore->Register(session);
@@ -86,21 +109,38 @@ int main()
 		}));
 	}
 
-	threads.push_back(new thread([&]() {
-		while (true) {
-			string input;
-			getline(cin, input);
-			// unsigned char 배열로 변환
-			BYTE ucharMessage[256];  // 256 크기의 배열 선언
-			memcpy(ucharMessage, input.c_str(), input.size());
+	BYTE userName[MAX_USER_NAME_SIZE];
+	cin >> userName;
 
-			// 배열의 마지막에 NULL 문자 추가 (C 스타일 문자열일 경우)
-			ucharMessage[input.size()] = '\0';
-			session->Send(ucharMessage);
-			// 패킷 직렬화
-			// session->send
-		}
-	}));
+	// 1. 패킷 생성
+	PacketLogInReq loginPkt;
+	::memcpy(loginPkt.userName, userName, sizeof(userName));
+	// 2. 헤더 부착
+	PacketHeader header = MakeHeader<PacketLogInReq>(PacketId::Login_Req);
+	OutputMemoryStreamRef inStream = make_shared<OutputMemoryStream>();
+	inStream->Write(header.totalSize);
+	inStream->Write(header.packetId);
+	inStream->Write(loginPkt.userName, MAX_USER_NAME_SIZE);
+	session->Send(inStream);
+
+	while (true) {
+		string input;
+		getline(cin, input);
+		// unsigned char 배열로 변환
+		BYTE message[MAX_CHAT_SIZE];
+		::memcpy(message, input.c_str(), input.size());
+	//	message[input.size()] = '\0';
+		PacketHeader header = MakeHeader<PacketLobbyChatReq>(PacketId::Lobby_Chat_Req);
+		PacketLobbyChatReq chatPkt;
+		::memcpy(chatPkt.userName, userName, sizeof(userName));
+		::memcpy(chatPkt.msg, message, input.size());
+		OutputMemoryStreamRef stream = make_shared<OutputMemoryStream>();
+		stream->Write(header.totalSize);
+		stream->Write(header.packetId);
+		stream->Write(chatPkt.userName, MAX_USER_NAME_SIZE);
+		stream->Write(chatPkt.msg, MAX_CHAT_SIZE);
+		session->Send(stream);
+	}
 	
 	for (auto t : threads)
 		t->join();
