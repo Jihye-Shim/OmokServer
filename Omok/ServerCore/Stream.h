@@ -18,6 +18,14 @@ public:
 	void Write(uint32_t inData) { Write(&inData, sizeof(inData)); }
 	void Write(int32_t inData) { Write(&inData, sizeof(inData)); }
 	void Write(uint16_t inData) { Write(&inData, sizeof(inData)); }
+	
+	template<typename T>
+	void Write(vector<T>& inVector, size_t len) { // container vector Á÷·ÄÈ­
+		size_t elementCount = inVector.size();
+		Write(elementCount);
+		for (T& element : inVector)
+			Write(element, len);
+	}
 
 	template<typename T> 
 	void Write(const T& inData) {
