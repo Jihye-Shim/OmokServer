@@ -17,6 +17,8 @@ using IocpObjectRef = std::shared_ptr<class IocpObject>;
 using ListenerRef = std::shared_ptr<class Listener>;
 using SessionRef = std::shared_ptr<class Session>;
 using OutputMemoryStreamRef = std::shared_ptr<class OutputMemoryStream>;
+using InputMemoryStreamRef = std::shared_ptr<class InputMemoryStream>;
+using RoomRef = std::shared_ptr<class Room>;
 
 // Macro
 #define OUT
