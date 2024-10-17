@@ -25,7 +25,6 @@ public:
 	/* 외부 사용 */
 	bool Connect(SocketAddress targetAddress);
 	void Disconnect(const WCHAR* cause);
-//	void Send(BYTE* sendBuffer);
 	void Send(OutputMemoryStreamRef inStream);
 
 public:
@@ -50,8 +49,8 @@ public:
 public:
 	//USELOCK
 	BYTE _recvBuffer[BUF_SIZE];
-//	BYTE _sendBuffer[BUF_SIZE];
-
+public:
+	BYTE _name[MAX_USER_NAME_SIZE] = "";
 private:
 	ConnectEvent _connectEvent;
 	DisconnectEvent _disconnectEvent;
@@ -60,10 +59,8 @@ private:
 private:
 	SOCKET _socket;
 	SocketAddress _sockAddress; // Client: my(bindAnyAddress) Server: target(getpeername)
-	
+
 	USE_LOCK
-//	BYTE recvBuffer[1000];
-//	BYTE sendBuffer[1000];
 	atomic<bool> _connected = false;
 };
 
