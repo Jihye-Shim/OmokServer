@@ -8,8 +8,8 @@ public:
 	void Remove(GameSessionRef session);
 	void Broadcast(OutputMemoryStreamRef outStream);
 	int32 GetSessionCount() { return _sessionCount; }
-
-private:
+	
+public:
 	USE_LOCK
 	set<GameSessionRef> _sessions;
 	int32 _sessionCount = 0;

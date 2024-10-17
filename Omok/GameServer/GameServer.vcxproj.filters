@@ -21,6 +21,12 @@
     <ClCompile Include="GameSessionManager.cpp">
       <Filter>Main</Filter>
     </ClCompile>
+    <ClCompile Include="RoomManager.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Room.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -30,6 +36,12 @@
       <Filter>Main</Filter>
     </ClInclude>
     <ClInclude Include="GameSession.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="RoomManager.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Room.h">
       <Filter>Main</Filter>
     </ClInclude>
   </ItemGroup>

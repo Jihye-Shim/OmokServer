@@ -12,17 +12,16 @@ int32 threadCount = 5;// thread::hardware_concurrency(); // (thread::hardware_co
 
 int main()
 {
-	cout << "Concurrency: " << threadCount << endl;
 
 	/* 초기화 */
 	SocketUtils::Init();
-	IocpCoreRef iocpCore = make_shared<IocpCore>();
+	IocpCoreRef GIocpCore = make_shared<IocpCore>();
 	setlocale(LC_ALL, "");
 
 	/* Register Accept */
-	ListenerRef listener = make_shared<Listener>(SocketAddress(L"127.0.0.1", 7777), iocpCore, []() {return make_shared<GameSession>(); });
-	ASSERT_CRASH(iocpCore->Register(listener));
-	ASSERT_CRASH(listener->StartAccept());
+	ListenerRef GListener = make_shared<Listener>(SocketAddress(L"127.0.0.1", 7777), GIocpCore, []() {return make_shared<GameSession>(); });
+	ASSERT_CRASH(GIocpCore->Register(GListener));
+	ASSERT_CRASH(GListener->StartAccept());
 
 	cout << "Ready to Accept!" << endl;
 
@@ -31,7 +30,7 @@ int main()
 	for (int32 i = 0; i < threadCount; i++) {
 		threads.push_back(new thread([&]() {
 			while (true) {
-				iocpCore->Dispatch();
+				GIocpCore->Dispatch();
 			}
 		}));
 	}

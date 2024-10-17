@@ -12,7 +12,11 @@ public:
 	virtual void OnDisconnected() override;
 
 private:
-	WCHAR* utf8ToWChar(BYTE* utf8);
-//	void ProcessPacket()
+	WCHAR* Utf8ToWChar(BYTE* utf8);
+	void ProcessPacket(InputMemoryStreamRef inStream, PacketId id);
+
+private:
+	bool _game = false;
+	RoomRef _room;
 };
 
