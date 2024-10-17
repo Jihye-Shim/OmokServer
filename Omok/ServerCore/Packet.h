@@ -16,11 +16,24 @@ enum class PacketId : uint16_t{
 	Lobby_Chat_Res = 38,
 	Lobby_Chat_Broad = 39,
 
-	Game_Enter_Req = 41,
-	Game_Enter_Res = 42,
+	Room_Enter_Req = 41,
+	Room_Enter_Res = 42,
+	Room_Open_Broad = 43,
 
-	Game_Leave_Req = 43,
-	Game_Leave_Res = 44
+	Room_Leave_Req = 44,
+	Room_Leave_Res = 45,
+	Room_Full_Broad = 46,
+
+	Game_Start_Req = 51,
+	Game_Start_Res = 52,
+
+	Game_Ready_Req = 53,
+	Game_Ready_Res = 54,
+
+	Game_Pos_Req = 53,
+	Game_Pos_Res = 54,
+
+	Game_Outcome_Broad = 55
 };
 
 struct PacketHeader { // 4byte
@@ -31,6 +44,11 @@ struct PacketHeader { // 4byte
 struct PacketBase {
 	uint32 errCode;
 };
+/*
+* ErrCode
+* 0: None
+* 1: ExistName
+*/
 
 const int MAX_USER_NAME_SIZE = 64;
 const int MAX_CHAT_SIZE = 1024;
@@ -44,6 +62,8 @@ struct PacketLogInReq
 };
 
 struct PacketLogInRes : PacketBase {
+	vector<BYTE*> userList;
+	vector<BYTE*> roomList;
 };
 
 /*------------------
@@ -65,7 +85,7 @@ struct PacketLobbyLeaveReq {
 };
 
 struct PacketLobbyLeaveRes : PacketBase {
-
+	BYTE userName[MAX_USER_NAME_SIZE] = { 0, };
 };
 
 struct PacketLobbyLeaveBroad {
@@ -88,20 +108,49 @@ struct PacketLobbyChatBroad {
 	BYTE msg[MAX_CHAT_SIZE] = { 0, };
 };
 
-struct PacketGameEnterReq {
+/*------------------
+		Room
+-------------------*/
+struct PacketRoomEnterReq {
+	BYTE userName[MAX_USER_NAME_SIZE] = { 0, };
+	BYTE roomName[MAX_USER_NAME_SIZE] = { 0, };
+};
+
+struct PacketRoomEnterRes : PacketBase{
+	BYTE user1[MAX_USER_NAME_SIZE] = { 0, };
+	BYTE user2[MAX_USER_NAME_SIZE] = { 0, };
+	BYTE roomName[MAX_USER_NAME_SIZE] = { 0, };
+};
+struct PacketRoomOpenBroad {
+	BYTE roomName[MAX_USER_NAME_SIZE] = { 0, };
+};
+
+struct PacketRoomFullBroad {
+	BYTE roomName[MAX_USER_NAME_SIZE] = { 0, };
+};
+
+struct PacketRoomLeaveReq {
+};
+
+struct PacketRoomLeaveRes: PacketBase {
 
 };
 
-struct PacketGameEnterRes {
+/*------------------
+		Game
+-------------------*/
 
+struct PacketGamePosReq {
+	uint16_t x;
+	uint16_t y;
+};
+struct PacketGamePosRes :PacketBase{
+	uint16_t x;
+	uint16_t y;
 };
 
-struct PacketGameLeaveReq {
-
-};
-
-struct PacketGameLeaveRes {
-
+struct PacketGameOutcomeBroad {
+	uint16_t win;
 };
 
 template<typename T>
