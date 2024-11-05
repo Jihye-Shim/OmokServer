@@ -80,3 +80,9 @@ bool Room::isInSize(uint32 x, uint32 y)
 		return false;
 	return true;
 }
+
+void Room::SendEnterUser(OutputMemoryStreamRef outStream)
+{
+	static_pointer_cast<GameSession>(_session1)->Send(outStream);
+	static_pointer_cast<GameSession>(_session2)->Send(outStream);
+}

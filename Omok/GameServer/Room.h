@@ -11,7 +11,8 @@ public:
 	uint16 AddStone(BYTE* name, uint32 posX, uint32 posY);
 	uint16 IsWin(uint32 stone, uint32 posX, uint32 posY);
 	bool isInSize(uint32 x, uint32 y);
-
+public:
+	void SendEnterUser(OutputMemoryStreamRef outStream);
 public:
 	IocpObjectRef _session1 = nullptr;
 	IocpObjectRef _session2 = nullptr;
