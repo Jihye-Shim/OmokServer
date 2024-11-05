@@ -1,6 +1,7 @@
 #pragma once
 #include "Session.h"
 #include "GameSessionManager.h"
+
 class GameSession : public Session {
 public:
 	~GameSession() {
@@ -16,7 +17,9 @@ private:
 	void ProcessPacket(InputMemoryStreamRef inStream, PacketId id);
 
 private:
-	bool _game = false;
 	RoomRef _room;
+
+	bool _game = false;
+	int32 my = 0;
 };
 
