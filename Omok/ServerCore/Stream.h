@@ -32,6 +32,10 @@ public:
 		ASSERT_CRASH(::is_arithmetic<T>::value || ::is_enum<T>::value);
 		Write(&inData, sizeof(inData));
 	}
+public:
+	/* PacketFunc */
+	void WritePacketHeader(PacketHeader header);
+	void WriteRoomEnterRes(PacketHeader header, uint32 errCode, BYTE* user1, BYTE* user2, BYTE* roomName);
 
 private:
 	void ReallocBuffer(uint32_t inNewLength);

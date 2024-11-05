@@ -33,3 +33,23 @@ void InputMemoryStream::Read(void* outData, uint32_t inByteCount)
 	::memcpy(outData, _buffer + _head, inByteCount);
 	_head = resultHead;
 }
+
+
+/*---------------------------
+		PacketFunc
+-----------------------------*/
+
+void OutputMemoryStream::WritePacketHeader(PacketHeader header)
+{
+	this->Write(header.totalSize);
+	this->Write(header.packetId);
+}
+
+void OutputMemoryStream::WriteRoomEnterRes(PacketHeader header, uint32 errCode, BYTE* user1, BYTE* user2, BYTE* roomName)
+{
+	this->WritePacketHeader(header);
+	this->Write(errCode);
+	this->Write(user1, MAX_USER_NAME_SIZE);
+	this->Write(user2, MAX_USER_NAME_SIZE);
+	this->Write(roomName, MAX_USER_NAME_SIZE);
+}
